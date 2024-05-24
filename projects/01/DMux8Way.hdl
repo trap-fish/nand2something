@@ -1,0 +1,16 @@
+CHIP DMux8Way {
+  IN in, sel[3];
+  OUT a, b, c, d, e, f, g, h;
+
+  PARTS:
+  // can't index with MSB first, so use DMux with sel=MSB
+  // this splits the truth table in to halves
+  DMux(in=in, sel=sel[2], a=upr, b=lwr);
+
+  // upper half of truth table, sel[2]=0
+  DMux4Way(in=upr, sel=sel[0..1], a=a, b=b, c=c, d=d);
+  
+  // lower half of truth table, sel[2]=1
+  DMux4Way(in=lwr, sel=sel[0..1], a=e, b=f, c=g, d=h);
+
+}
