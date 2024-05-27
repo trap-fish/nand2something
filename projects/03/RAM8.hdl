@@ -1,0 +1,26 @@
+CHIP RAM8 {
+    IN in[16], load, address[3];
+    OUT out[16];
+
+    PARTS:
+    //sets the load to 1 or 0 depending on address
+    DMux8Way(in=load, sel=address, 
+                a=aload, b=bload, c=cload, d=dload, 
+                e=eload , f=fload , g=gload , h=hload);
+
+    // 8 registers with load bit for read/write
+    Register(in=in , load=aload , out=r000 );
+    Register(in=in , load=bload , out=r001 );
+    Register(in=in , load=cload , out=r010 );
+    Register(in=in , load=dload , out=r011 );
+    Register(in=in , load=eload , out=r100 );
+    Register(in=in , load=fload , out=r101 );
+    Register(in=in , load=gload , out=r110 );
+    Register(in=in , load=hload , out=r111 );
+
+    // selects one of 8 registers values on address
+    Mux8Way16(a=r000, b=r001, c=r010, d=r011, e=r100,
+                f=r101, g=r110, h=r111, 
+                sel=address, out=out);
+    
+}

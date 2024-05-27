@@ -1,0 +1,26 @@
+CHIP RAM16K {
+    IN in[16], load, address[14];
+    OUT out[16];
+
+
+    PARTS:
+        //sets the load using MSB (register) address
+        DMux8Way(in=load, sel=address[11..13], 
+                    a=loada, b=loadb, c=loadc, d=loadd, 
+                    e=loade , f=loadf , g=loadg , h=loadh);
+
+        // 8 RAM64s with load bit for read/write
+        RAM4K(in=in, load=loada, address=address[0..11], out=ram000);
+        RAM4K(in=in, load=loadb, address=address[0..11], out=ram001);
+        RAM4K(in=in, load=loadc, address=address[0..11], out=ram010);
+        RAM4K(in=in, load=loadd, address=address[0..11], out=ram011);
+        RAM4K(in=in, load=loade, address=address[0..11], out=ram100);
+        RAM4K(in=in, load=loadf, address=address[0..11], out=ram101);
+        RAM4K(in=in, load=loadg, address=address[0..11], out=ram110);
+        RAM4K(in=in, load=loadh, address=address[0..11], out=ram111);
+
+        // selects one of 8 RAM64 values from MSB of address
+        Mux8Way16(a=ram000, b=ram001, c=ram010, d=ram011, e=ram100,
+                    f=ram101, g=ram110, h=ram111, 
+                    sel=address[11..13], out=out);
+}

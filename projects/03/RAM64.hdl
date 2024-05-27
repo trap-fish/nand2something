@@ -1,0 +1,25 @@
+CHIP RAM64 {
+    IN in[16], load, address[6];
+    OUT out[16];
+
+    PARTS:
+    //sets the load to 1 or 0 depending on MSB of address
+    DMux8Way(in=load, sel=address[3..5], 
+                a=ram0, b=ram1, c=ram2, d=ram3, 
+                e=ram4 , f=ram5 , g=ram6 , h=ram7);
+
+    // 8 RAMs with load bit for read/write
+    RAM8(in=in, load=ram0, address=address[0..2], out=r000);
+    RAM8(in=in, load=ram1, address=address[0..2], out=r001);
+    RAM8(in=in, load=ram2, address=address[0..2], out=r010);
+    RAM8(in=in, load=ram3, address=address[0..2], out=r011);
+    RAM8(in=in, load=ram4, address=address[0..2], out=r100);
+    RAM8(in=in, load=ram5, address=address[0..2], out=r101);
+    RAM8(in=in, load=ram6, address=address[0..2], out=r110);
+    RAM8(in=in, load=ram7, address=address[0..2], out=r111);
+
+    // selects one of 8 RAM values from LSB of address
+    Mux8Way16(a=r000, b=r001, c=r010, d=r011, e=r100,
+                f=r101, g=r110, h=r111, 
+                sel=address[3..5], out=out);
+}
