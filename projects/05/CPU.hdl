@@ -1,0 +1,95 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/5/CPU.hdl
+/**
+ * The Hack Central Processing unit (CPU).
+ * Parses the binary code in the instruction input and executes it according to the
+ * Hack machine language specification. In the case of a C-instruction, computes the
+ * function specified by the instruction. If the instruction specifies to read a memory
+ * value, the inM input is expected to contain this value. If the instruction specifies
+ * to write a value to the memory, sets the outM output to this value, sets the addressM
+ * output to the target address, and asserts the writeM output (when writeM = 0, any
+ * value may appear in outM).
+ * If the reset input is 0, computes the address of the next instruction and sets the
+ * pc output to that value. If the reset input is 1, sets pc to 0.
+ * Note: The outM and writeM outputs are combinational: they are affected by the
+ * instruction's execution during the current cycle. The addressM and pc outputs are
+ * clocked: although they are affected by the instruction's execution, they commit to
+ * their new values only in the next cycle.
+ */
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+	//// Replace this comment with your code.
+
+        // if A-instuction, use instruction, otherwise ALU output
+        Mux16(a=instruction, b=aluOut, 
+                sel=instruction[15], out=aRegIn);
+
+        // if A-instruction or C-instruction d-bit for A is 1, load A
+        Not(in=instruction[15], out=isA);
+        Or(a=isA, b=instruction[5], out=aLoad);
+
+        // Either ALU-output or Instruction, load and write to M depend on load bits
+        ARegister(in=aRegIn, load=aLoad, 
+                        out=aRegOut, out[0..14]=addressM );
+
+        // if C-instruction and a-bit==1, instruction is ALU y input
+        // otherwise A-register value is ALU y input
+        And(a=instruction[15], b=instruction[12], out=aBit);
+        Mux16(a=aRegOut, b=inM, sel=aBit, out=yALU);
+        
+        // if C-instruction, and d-bit for D register, then load ALU out to D-Register
+        And(a=instruction[15], b=instruction[4], out=dLoad);
+        DRegister(in=aluOut, load=dLoad, out=dRegOut );
+
+        // ALU compute defined by c-bits ([6..11]), output as M
+        // output can be loaded to A and D register depending on op/control d-bits
+        ALU(x=dRegOut, y=yALU, 
+                zx=instruction[11], nx=instruction[10], 
+                zy=instruction[9], ny=instruction[8], 
+                f=instruction[7], no=instruction[6],
+                out=aluOut, out=outM,
+                zr=zrOut ,ng=ngOut);
+
+        // if C-instruction and d-bit for M, then write to M
+        And(a=instruction[3],b=instruction[15], out=writeM);
+
+        // check if ALU Output is zero or negative
+        Or(a=zrOut, b=ngOut, out=zrORng);
+        Not(in=zrORng, out=notZRNG);
+
+        // define if zero, negative or positive jump conditions are met
+        And(a=instruction[2], b=ngOut, out=ngCond);
+        And(a=instruction[1], b=zrOut, out=zrCond);
+        And(a=instruction[0], b=notZRNG, out=posCond);
+        Or(a=zrCond, b=ngCond, out=jump0);
+        Or(a=posCond, b=jump0, out=jump1);
+
+        // only jump if C-instruction and conditions met
+        // if both true, PC load bit asserted and PC loads A-register value
+        And(a=instruction[15], b=jump1, out=pcLoad);
+        
+        // mentioned on p54 that at most one of load, 
+        //reset or inc should be asserted, so only inc if load and reset are 0
+        Not(in=pcLoad, out=notPCLoad);
+        Not(in=reset, out=notReset);
+        And(a=notPCLoad, b=notReset, out=incCntl);
+
+        // either increment or load A-register value to counter value
+        // otherwise reset to zero
+        PC(in=aRegOut, load=pcLoad, inc=incCntl, 
+                reset=reset, out[0..14]=pc);
+}
