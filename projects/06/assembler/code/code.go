@@ -9,13 +9,13 @@ func dest(destination string) (destBits string) {
 		destBits = "001"
 	case "D":
 		destBits = "010"
-	case "DM":
+	case "DM", "MD":
 		destBits = "011"
 	case "A":
 		destBits = "100"
-	case "AM":
+	case "AM", "MA":
 		destBits = "101"
-	case "AD":
+	case "AD", "DA":
 		destBits = "110"
 	case "ADM":
 		destBits = "111"
@@ -75,11 +75,11 @@ func comp(compute string) (computeBits string) {
 		computeBits = "0110011"
 	case "-M":
 		computeBits = "1110011"
-	case "D+1":
+	case "D+1", "1+D":
 		computeBits = "0011111"
-	case "A+1":
+	case "A+1", "1+A":
 		computeBits = "0110111"
-	case "M+1":
+	case "M+1", "1+M":
 		computeBits = "1110111"
 	case "D-1":
 		computeBits = "0001110"
@@ -87,9 +87,9 @@ func comp(compute string) (computeBits string) {
 		computeBits = "0110010"
 	case "M-1":
 		computeBits = "1110010"
-	case "D+A":
+	case "D+A", "A+D":
 		computeBits = "0000010"
-	case "D+M":
+	case "D+M", "M+D":
 		computeBits = "1000010"
 	case "D-A":
 		computeBits = "0010011"
@@ -99,13 +99,13 @@ func comp(compute string) (computeBits string) {
 		computeBits = "0000111"
 	case "M-D":
 		computeBits = "1000111"
-	case "D&A":
+	case "D&A", "A&D":
 		computeBits = "0000000"
-	case "D&M":
+	case "D&M", "M&D":
 		computeBits = "1000000"
-	case "A|D":
+	case "A|D", "D|A":
 		computeBits = "0010101"
-	case "M|D":
+	case "M|D", "D|M":
 		computeBits = "1010101"
 	}
 

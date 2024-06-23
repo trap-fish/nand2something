@@ -109,12 +109,12 @@ func ToBinary(base10 string) (binary string) {
 		panic(err)
 	}
 	// dealing with 16-bit computer, we don't care if values above are wrong
-	// 131071 is an uneeded buffer
-	if base10int > 131071 {
+	// TODO: add error handler
+	if base10int > 32767 {
 		return "10000000000000000"
 	}
 	binary = ""
-	for base10int > 0 && base10int < 131071 {
+	for base10int > 0 && base10int < 32768 {
 		remainder := base10int % 2
 		base10int /= 2
 		binary = fmt.Sprint(remainder, binary)
