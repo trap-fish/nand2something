@@ -50,28 +50,25 @@ func GetCommandType(line string) (command string) {
 	return command
 }
 
-func args(line string) (argument1 string, argument2 string) {
+func Args(line string) (argument1 string, argument2 string, err error) {
 	args := strings.Split(line, " ")
 	if len(args) == 1 {
 		argument1 = args[0]
 		argument2 = ""
-	} else {
+		err = nil
+	} else if len(args) == 3 {
 		argument1 = args[1]
 		argument2 = args[2]
-	}
-
-	return argument1, argument2
-}
-
-func arg2(line string) (argument string) {
-	args := strings.Split(line, " ")
-	if len(args) == 1 {
-
+		err = nil
 	} else {
-		argument = args[2]
+		argument1 = ""
+		argument2 = ""
+		err = fmt.Errorf("total arguments passed can only be 1 or 3, got: %d\n"+
+			"from - %s", len(args), line)
+
 	}
 
-	return argument
+	return argument1, argument2, err
 }
 
 func Parser(filepath string) (parsed []string, instType []string) {
@@ -104,13 +101,8 @@ func Parser(filepath string) (parsed []string, instType []string) {
 		currentInstruction := GetCommandType(line)
 		instructionType = append(instructionType, currentInstruction)
 
-		arg1, arg2 := args(line)
-		cleanedLines = append(cleanedLines, arg1)
-
-		// arg2 will be "" here, but don't want the extra space
-		if currentInstruction != "C_ARITHMETIC" {
-			cleanedLines = append(cleanedLines, arg2)
-		}
+		//arg1, arg2 := args(line)
+		cleanedLines = append(cleanedLines, line)
 
 	}
 	return cleanedLines, instructionType

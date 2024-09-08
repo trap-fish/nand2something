@@ -1,7 +1,8 @@
-package codeWrite
+package codeWriter
 
 import (
 	"fmt"
+	"os"
 )
 
 // takes the command's segment and maps to the assembly symbol
@@ -20,7 +21,7 @@ func mapSegmentSymbol(segment string) (segSymbol string) {
 	return segSymbol
 }
 
-func generatePushCode(vmSegment string, vmIndex int) (assemblyCode string) {
+func generatePushCode(vmSegment string, vmIndex string) (assemblyCode string) {
 	symbol := mapSegmentSymbol(vmSegment)
 	pushCode :=
 		"@SP\n" +
@@ -28,13 +29,14 @@ func generatePushCode(vmSegment string, vmIndex int) (assemblyCode string) {
 			"M=D\n" +
 			"@SP\n" +
 			"M=M+1\n"
+	// constant can only be push command
 	if vmSegment == "constant" {
-		assemblyCode += fmt.Sprintf("//push constant %d\n", vmIndex)
-		assemblyCode += fmt.Sprintf("@%d\nD=A\n", vmIndex)
+		assemblyCode += fmt.Sprintf("//push constant %s\n", vmIndex)
+		assemblyCode += fmt.Sprintf("@%s\nD=A\n", vmIndex)
 		assemblyCode += fmt.Sprintf(pushCode)
 	} else {
-		assemblyCode += fmt.Sprintf("//push %s %d\n", vmSegment, vmIndex)
-		assemblyCode += fmt.Sprintf("@%s\nA=M+%d\nD=M\n", symbol, vmIndex)
+		assemblyCode += fmt.Sprintf("//push %s %s\n", vmSegment, vmIndex)
+		assemblyCode += fmt.Sprintf("@%s\nA=M+%s\nD=M\n", symbol, vmIndex)
 		assemblyCode += fmt.Sprintf(pushCode)
 	}
 
@@ -42,7 +44,7 @@ func generatePushCode(vmSegment string, vmIndex int) (assemblyCode string) {
 
 }
 
-func generatePopCode(vmSegment string, vmIndex int) (assemblyCode string) {
+func generatePopCode(vmSegment string, vmIndex string) (assemblyCode string) {
 	symbol := mapSegmentSymbol(vmSegment)
 	popCode :=
 		"D=D+A\n" +
@@ -54,24 +56,30 @@ func generatePopCode(vmSegment string, vmIndex int) (assemblyCode string) {
 			"@R13\n" +
 			"A=M\n" +
 			"M=D\n"
-	assemblyCode += fmt.Sprintf("//pop %s %d\n", vmSegment, vmIndex)
-	assemblyCode += fmt.Sprintf("@%s\nD=M\n@%d\n", symbol, vmIndex)
+	assemblyCode += fmt.Sprintf("//pop %s %s\n", vmSegment, vmIndex)
+	assemblyCode += fmt.Sprintf("@%s\nD=M\n@%s\n", symbol, vmIndex)
 	assemblyCode += fmt.Sprintf(popCode)
 
 	return assemblyCode
 
 }
 
-func writePushPop(cmdType string, segment string, index int) {
-	//var asmLines string
-	// constant can only be push command
+func WritePushPop(file *os.File, cmdType string, segment string, index string) error {
+	var assemblyCode string
+
 	if cmdType == "C_PUSH" {
-		pushCode := generatePushCode(segment, index)
-		fmt.Printf(pushCode)
+		assemblyCode = generatePushCode(segment, index)
 	} else if cmdType == "C_POP" {
-		popCode := generatePopCode(segment, index)
-		fmt.Printf(popCode)
+		assemblyCode = generatePopCode(segment, index)
 	} else {
-		fmt.Printf("do nothing %s\n", cmdType)
+		fmt.Errorf("failed to write to file: Type:%s - %s %s", cmdType, segment, index)
 	}
+
+	_, err := file.WriteString(assemblyCode)
+	if err != nil {
+		return fmt.Errorf("failed to write to file: %v", err)
+	}
+
+	return nil
+
 }
