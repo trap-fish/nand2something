@@ -29,7 +29,7 @@ func main() {
 
 		// terminate the programme with infinite loop
 		if el == len(parsedFile)-1 {
-			outf.WriteString("\n0;JEQ")
+			outf.WriteString("\n(END)\n@END\n0;JEQ")
 		}
 	}
 
