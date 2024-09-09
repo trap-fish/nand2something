@@ -37,8 +37,17 @@ func mapSegmentSymbol(segment string, vmIndex string) (segSymbol string) {
 	return segSymbol
 }
 
-func generatePushCode(vmSegment string, vmIndex string) (assemblyCode string) {
-	symbol := mapSegmentSymbol(vmSegment, vmIndex)
+func generatePushCode(vmSegment string, vmIndex string, filename string) (assemblyCode string) {
+
+	var symbol string
+
+	// static has no symbol, but a unique label based on filename.index
+	if vmSegment == "static" {
+		symbol = generateStaticLabel(filename, vmIndex)
+	} else {
+		symbol = mapSegmentSymbol(vmSegment, vmIndex)
+	}
+
 	pushCode :=
 		"@SP\n" +
 			"A=M\n" +
@@ -64,8 +73,15 @@ func generatePushCode(vmSegment string, vmIndex string) (assemblyCode string) {
 
 }
 
-func generatePopCode(vmSegment string, vmIndex string) (assemblyCode string) {
-	symbol := mapSegmentSymbol(vmSegment, vmIndex)
+func generatePopCode(vmSegment string, vmIndex string, filename string) (assemblyCode string) {
+	var symbol string
+
+	// static has no symbol, but a unique label based on filename.index
+	if vmSegment == "static" {
+		symbol = generateStaticLabel(filename, vmIndex)
+	} else {
+		symbol = mapSegmentSymbol(vmSegment, vmIndex)
+	}
 	popCode :=
 		"D=D+A\n" +
 			"@R13\n" +
@@ -99,11 +115,13 @@ func generatePopCode(vmSegment string, vmIndex string) (assemblyCode string) {
 
 func WritePushPop(file *os.File, cmdType string, segment string, index string) error {
 	var assemblyCode string
+	filepath := strings.Split(file.Name(), "/")
+	filename := strings.TrimSuffix(filepath[len(filepath)-1], ".asm")
 
 	if cmdType == "C_PUSH" {
-		assemblyCode = generatePushCode(segment, index)
+		assemblyCode = generatePushCode(segment, index, filename)
 	} else if cmdType == "C_POP" {
-		assemblyCode = generatePopCode(segment, index)
+		assemblyCode = generatePopCode(segment, index, filename)
 	} else {
 		err1 := fmt.Errorf("writePushPop recieved a non C_PUSH/C_POP command: Type:%s - %s %s", cmdType, segment, index)
 		return err1
@@ -137,6 +155,12 @@ func getLogicalAssembly(operator string) (logAssemblyCode string) {
 
 // labels defined require a unique name, this is used as an index
 var labelCounter int
+
+// static variables are to have a format Foo.i where Foo is the filename and i the index
+func generateStaticLabel(filename string, index string) (staticLabel string) {
+	staticLabel = filename + "." + index
+	return staticLabel
+}
 
 func getConditionalAssembly(operator string) (condAssemblyCode string) {
 	opSym := mapSegmentSymbol(operator, "0") // operator does not need an index
@@ -204,7 +228,7 @@ func generateArithmeticCode(operator string) (assemblyCode string) {
 		return "// function not yet defined"
 	}
 	assemblyCode =
-		"// add\n" +
+		"//" + operator + "\n" +
 			"@SP\n" +
 			"AM=M-1\n" +
 			"D=M\n" +

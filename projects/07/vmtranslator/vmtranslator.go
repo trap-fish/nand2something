@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	filename := "StackTest"
+	filename := "StaticTest"
 	filepath := "./testfiles/" + filename + ".vm"
 
 	// parse the file
