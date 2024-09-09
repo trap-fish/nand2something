@@ -8,11 +8,12 @@ import (
 
 func main() {
 
-	filepath := "../BasicTest.vm"
+	filename := "StackTest"
+	filepath := "./testfiles/" + filename + ".vm"
 
 	// parse the file
 	parsedFile, cmdType := parser.Parser(filepath)
-	outf, _ := os.Create("./Basic.asm")
+	outf, _ := os.Create("./testfiles/" + filename + ".asm")
 	defer outf.Close()
 
 	for el := range len(parsedFile) {
@@ -20,7 +21,16 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		codeWriter.WritePushPop(outf, cmdType[el], arg1, arg2)
+		if cmdType[el] == "C_ARITHMETIC" {
+			codeWriter.WriteArithmetic(outf, arg1)
+		} else {
+			codeWriter.WritePushPop(outf, cmdType[el], arg1, arg2)
+		}
+
+		// terminate the programme with infinite loop
+		if el == len(parsedFile)-1 {
+			outf.WriteString("\n0;JEQ")
+		}
 	}
 
 }
