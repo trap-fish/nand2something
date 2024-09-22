@@ -7,6 +7,28 @@ import (
 	"strings"
 )
 
+// used in getCommandType to map the current line to a type
+// defined as global variable to avoid creation of map for each line
+var commandOps = map[string]string{
+	"push":     "C_PUSH",
+	"pop":      "C_POP",
+	"add":      "C_ARITHMETIC",
+	"sub":      "C_ARITHMETIC",
+	"neg":      "C_ARITHMETIC",
+	"eq":       "C_ARITHMETIC",
+	"gt":       "C_ARITHMETIC",
+	"lt":       "C_ARITHMETIC",
+	"and":      "C_ARITHMETIC",
+	"or":       "C_ARITHMETIC",
+	"not":      "C_ARITHMETIC",
+	"if-goto":  "C_IF",
+	"goto":     "C_GOTO",
+	"label":    "C_LABEL",
+	"function": "C_FUNCTION",
+	"return":   "C_RETURN",
+	"call":     "C_CALL",
+}
+
 func check(e error) {
 	if e != nil {
 		panic(e)
@@ -19,35 +41,16 @@ func CleanLine(line string) (cleaned string) {
 }
 
 // assumes this function is exclusively called line is cleaned and comment removed
-// similar to parsing A instruction but included seperated so
+// if command is in the defined list it is mapped to the type, otherwise invalid
 func GetCommandType(line string) (command string) {
+	firstWord := strings.Split(line, " ")[0]
 
-	arithmetOps := map[string]bool{
-		"add": true,
-		"sub": true,
-		"neg": true,
-		"eq":  true,
-		"gt":  true,
-		"lt":  true,
-		"and": true,
-		"or":  true,
-		"not": true,
+	if command, exists := commandOps[firstWord]; exists {
+		return command
 	}
 
-	pushIdx := strings.Index(line, "push")
-	popIdx := strings.Index(line, "pop")
-
-	// if contains push/pop
-	if pushIdx == 0 {
-		command = "C_PUSH"
-	} else if popIdx == 0 {
-		command = "C_POP"
-	} else if arithmetOps[line] {
-		command = "C_ARITHMETIC"
-	} else {
-		fmt.Printf("Unable to identify command type")
-	}
-	return command
+	fmt.Printf("Unable to identify command type for: %s\n", firstWord)
+	return "INVALID_COMMAND"
 }
 
 func Args(line string) (argument1 string, argument2 string, err error) {
@@ -90,6 +93,7 @@ func Parser(filepath string) (parsed []string, instType []string) {
 		commentIdx := strings.Index(line, "//")
 		if commentIdx != -1 {
 			line = line[:commentIdx]
+			line = strings.TrimSpace((line)) // TODO: just move the trim to after commend stripping, but need to test
 		}
 
 		// removes empty lines
