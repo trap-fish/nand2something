@@ -254,3 +254,52 @@ func WriteArithmetic(file *os.File, operator string) (err error) {
 
 	return nil
 }
+
+func WriteGoTo(file *os.File, argument string) (err error) {
+	// unconditional jump to @argument
+	assemblyCode :=
+		"@" + argument + "\n" +
+			"0;JMP\n"
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing goto operation to file: %v", err)
+	}
+
+	return nil
+
+}
+
+func WriteIf(file *os.File, argument string) (err error) {
+	// if the top most value on stack is true/1, jump to @argument
+	// Compiler will handle prior logic to ensure the value in SP-1 addr
+	// was the result of conditional logic
+	assemblyCode :=
+		"@SP\n" +
+			"AM=M-1\n" +
+			"D=M\n" +
+			"@" + argument + "\n" +
+			"D;JGT\n"
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing if-goto operation to file: %v", err)
+	}
+
+	return nil
+
+}
+
+func WriteLabel(file *os.File, argument string) (err error) {
+	assemblyCode := fmt.Sprintf("// label for %s loop\n(%s)\n", argument, argument)
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing loop operation to file: %v", err)
+	}
+
+	return nil
+
+}
