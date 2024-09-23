@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+// labels defined require a unique name, this is used as an index
+var labelCounter int
+var returnCounter int
+
+// global variable to avoid repetitive creation of push code
+var pushCode = "@SP\n" +
+	"A=M\n" +
+	"M=D\n" +
+	"@SP\n" +
+	"M=M+1\n"
+
 // takes the command's segment and maps to the assembly symbol
 func mapSegmentSymbol(segment string, vmIndex string) (segSymbol string) {
 	var tempRAM = [8]string{"R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12"}
@@ -48,12 +59,6 @@ func generatePushCode(vmSegment string, vmIndex string, filename string) (assemb
 		symbol = mapSegmentSymbol(vmSegment, vmIndex)
 	}
 
-	pushCode :=
-		"@SP\n" +
-			"A=M\n" +
-			"M=D\n" +
-			"@SP\n" +
-			"M=M+1\n"
 	// constant can only be push command
 	if vmSegment == "constant" {
 		assemblyCode += "//push constant " + vmIndex + "\n"
@@ -152,9 +157,6 @@ func getLogicalAssembly(operator string) (logAssemblyCode string) {
 			"M=M+1\n"
 	return logAssemblyCode
 }
-
-// labels defined require a unique name, this is used as an index
-var labelCounter int
 
 // static variables are to have a format Foo.i where Foo is the filename and i the index
 func generateStaticLabel(filename string, index string) (staticLabel string) {
@@ -255,11 +257,104 @@ func WriteArithmetic(file *os.File, operator string) (err error) {
 	return nil
 }
 
-func WriteGoTo(file *os.File, argument string) (err error) {
+func generateGoTo(labelName string) (assemblyCode string) {
 	// unconditional jump to @argument
-	assemblyCode :=
-		"@" + argument + "\n" +
+	assemblyCode =
+		"@" + labelName + "\n" +
 			"0;JMP\n"
+	return assemblyCode
+}
+
+func WriteCall(file *os.File, function string, args string) (err error) {
+
+	var assemblyCode string
+
+	// get function name filename.function and return label
+	functionName := getFunctionName(file, function)
+	returnLabel := getReturnLabel(functionName)
+
+	//save the return address and current memory segments
+	assemblyCode += generateReturnAddr(returnLabel)
+	assemblyCode += generatePushCode("local", "0", "") //TODO: switch 3rd arg to defaults/optionals
+	assemblyCode += generatePushCode("argument", "0", "")
+	assemblyCode += generatePushCode("this", "0", "")
+	assemblyCode += generatePushCode("that", "0", "")
+	assemblyCode +=
+		"//set LCL to SP, reposition ARG, then go to function\n" +
+			"@SP\n" +
+			"D=M\n" +
+			"@LCL\n" +
+			"M=D\n" +
+			"@5\n" +
+			"D=D-A\n" +
+			"@" + args + "\n" +
+			"D=D-A\n" +
+			"@ARG\n" +
+			"M=D\n"
+	assemblyCode += generateGoTo(functionName)
+	assemblyCode += "(" + returnLabel + ")\n"
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing call operation to file: %v", err)
+	}
+
+	return nil
+
+}
+
+func WriteFunction(file *os.File, function string, nVars string) (err error) {
+
+	functionName := getFunctionName(file, function)
+	localVars := generatePushCode("constant", "0", "")
+	numLocalVars, _ := strconv.Atoi(nVars)
+
+	assemblyCode := "// function " + function + " " + nVars + "\n" +
+		"(" + functionName + ")\n" +
+		strings.Repeat(localVars, numLocalVars)
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing function operation to file: %v", err)
+	}
+
+	return nil
+}
+
+func getFunctionName(file *os.File, function string) (functionName string) {
+	filepath := strings.Split(file.Name(), "/")
+	filename := strings.TrimSuffix(filepath[len(filepath)-1], ".asm")
+	functionName = filename + "." + function
+
+	return functionName
+}
+func getReturnLabel(functionName string) (returnLabel string) {
+	// create a unique label for function return address
+	returnId := strconv.Itoa(returnCounter)
+	returnLabel = functionName + "$ret" + returnId
+	returnCounter += 1
+
+	return returnLabel
+}
+
+func generateReturnAddr(returnLabelName string) (assemblyCode string) {
+	// creates label for filename.functionName return address
+	// then pushes the address of this label onto the stack
+	assemblyCode =
+		"create function return address and push address to stack\n" +
+			"(" + returnLabelName + ")\n" +
+			"@" + returnLabelName + "\n" +
+			"0;JMP\n" +
+			"D=A\n" +
+			pushCode
+
+	return assemblyCode
+}
+
+func WriteGoTo(file *os.File, argument string) (err error) {
+	assemblyCode := generateGoTo(argument)
 
 	_, err = file.WriteString(assemblyCode)
 
@@ -293,7 +388,9 @@ func WriteIf(file *os.File, argument string) (err error) {
 }
 
 func WriteLabel(file *os.File, argument string) (err error) {
-	assemblyCode := fmt.Sprintf("// label for %s loop\n(%s)\n", argument, argument)
+	assemblyCode :=
+		"// label for " + argument + " loop\n" +
+			"(" + argument + ")\n"
 	_, err = file.WriteString(assemblyCode)
 
 	if err != nil {
@@ -302,4 +399,84 @@ func WriteLabel(file *os.File, argument string) (err error) {
 
 	return nil
 
+}
+
+func generateReturnCode() (assembleyCode string) {
+	// endframe = LCL
+	assembleyCode =
+		"//------- return start -------\n" +
+			"// endframe = LCL\n" +
+			"@LCL\n" +
+			"D=M\n" +
+			"@R13\n" +
+			"M=D\n" +
+			"\n" +
+			"// retAddr = *(endframe-5)\n" +
+			"@5\n" +
+			"D=D-A\n" +
+			"@R14\n" +
+			"M=D\n" +
+			"\n" +
+			"//*ARG = pop()\n" +
+			"@SP\n" +
+			"AM=M-1\n" +
+			"D=M\n" +
+			"@ARG\n" +
+			"A=M\n" +
+			"M=D\n" +
+			"\n" +
+			"//SP = ARG+1" +
+			"@ARG\n" +
+			"D=M\n" +
+			"@SP\n" +
+			"M=D+1\n" +
+			"\n" +
+			"// THAT = *(endframe-1)\n" +
+			"@R13\n" +
+			"AM=M-1 // this avoids having to subtract endframe-n where n>1\n" +
+			"D=M\n" +
+			"@THAT\n" +
+			"M=D\n" +
+			"\n" +
+			"// THIS = *(endframe-2)\n" +
+			"@R13\n" +
+			"AM=M-1 // \n" +
+			"D=M\n" +
+			"@THIS\n" +
+			"M=D\n" +
+			"\n" +
+			"// ARG = *(endframe-3)\n" +
+			"@R13\n" +
+			"AM=M-1 // \n" +
+			"D=M\n" +
+			"@ARG\n" +
+			"M=D\n" +
+			"\n" +
+			"// LCL = *(endframe-4)\n" +
+			"@R13\n" +
+			"AM=M-1 // \n" +
+			"D=M\n" +
+			"@LCL\n" +
+			"M=D\n" +
+			"\n" +
+			"// goto retAddr\n" +
+			"@R14\n" +
+			"A=M\n" +
+			"0;JMP\n" +
+			"//------- return end -------\n"
+
+	return strings.TrimSpace(assembleyCode)
+}
+
+func WriteReturn(file *os.File) (err error) {
+
+	assemblyCode := generateReturnCode()
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing return operation to file: %v", err)
+	}
+
+	return nil
 }

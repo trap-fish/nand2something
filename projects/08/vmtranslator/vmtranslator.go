@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"vmtranslator/codeWriter"
 	"vmtranslator/parser"
@@ -8,7 +9,7 @@ import (
 
 func main() {
 
-	filename := "Main"
+	filename := "SimpleFunction"
 	filepath := "./testfiles/" + filename + ".vm"
 
 	// parse the file
@@ -21,8 +22,21 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("line: %s - \t\t\t\tType: %s\n", parsedFile[el], cmdType[el])
 		if cmdType[el] == "C_ARITHMETIC" {
 			codeWriter.WriteArithmetic(outf, arg1)
+		} else if cmdType[el] == "C_LABEL" {
+			codeWriter.WriteLabel(outf, arg1)
+		} else if cmdType[el] == "C_GOTO" {
+			codeWriter.WriteGoTo(outf, arg1)
+		} else if cmdType[el] == "C_IF" {
+			codeWriter.WriteIf(outf, arg1)
+		} else if cmdType[el] == "C_FUNCTION" {
+			codeWriter.WriteFunction(outf, arg1, arg2)
+		} else if cmdType[el] == "C_CALL" {
+			codeWriter.WriteCall(outf, arg1, arg2)
+		} else if cmdType[el] == "C_RETURN" {
+			codeWriter.WriteReturn(outf)
 		} else {
 			codeWriter.WritePushPop(outf, cmdType[el], arg1, arg2)
 		}

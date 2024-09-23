@@ -53,10 +53,15 @@ func GetCommandType(line string) (command string) {
 }
 
 func Args(line string) (argument1 string, argument2 string, err error) {
+	// TODO: Clean this up, don't need 3 if-else statements
 	args := strings.Split(line, " ")
 	if len(args) == 1 {
 		argument1 = args[0]
 		argument2 = ""
+		err = nil
+	} else if len(args) == 2 {
+		// for example C_LABEL needs the labelname (args[1])
+		argument1 = args[1]
 		err = nil
 	} else if len(args) == 3 {
 		argument1 = args[1]
@@ -65,7 +70,7 @@ func Args(line string) (argument1 string, argument2 string, err error) {
 	} else {
 		argument1 = ""
 		argument2 = ""
-		err = fmt.Errorf("total arguments passed can only be 1 or 3, got: %d\n"+
+		err = fmt.Errorf("total arguments passed can only be 1, 2 or 3, got: %d\n"+
 			"from - %s", len(args), line)
 
 	}
