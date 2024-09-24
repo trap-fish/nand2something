@@ -9,13 +9,16 @@ import (
 
 func main() {
 
-	filename := "SimpleFunction"
+	filename := "Sys"
 	filepath := "./testfiles/" + filename + ".vm"
 
 	// parse the file
 	parsedFile, cmdType := parser.Parser(filepath)
 	outf, _ := os.Create("./testfiles/" + filename + ".asm")
 	defer outf.Close()
+
+	// write initialiser code to file
+	codeWriter.WriteInit(outf)
 
 	for el := range len(parsedFile) {
 		arg1, arg2, err := parser.Args(parsedFile[el])

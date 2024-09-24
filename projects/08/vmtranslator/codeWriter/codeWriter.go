@@ -265,20 +265,30 @@ func generateGoTo(labelName string) (assemblyCode string) {
 	return assemblyCode
 }
 
-func WriteCall(file *os.File, function string, args string) (err error) {
+func generatePushSymbol(symbol string) (assembleyCode string) {
+	assembleyCode =
+		"// push " + symbol + "\n" +
+			"@" + symbol + "\n" +
+			"D=M\n" +
+			pushCode
 
-	var assemblyCode string
+	return assembleyCode
 
+}
+
+func generateCallCode(file *os.File, function string, args string) (assemblyCode string) {
 	// get function name filename.function and return label
-	functionName := getFunctionName(file, function)
-	returnLabel := getReturnLabel(functionName)
+	if function != "Sys.init" {
+		function = getFunctionName(file, function)
+	}
+	returnLabel := getReturnLabel(function)
 
 	//save the return address and current memory segments
 	assemblyCode += generateReturnAddr(returnLabel)
-	assemblyCode += generatePushCode("local", "0", "") //TODO: switch 3rd arg to defaults/optionals
-	assemblyCode += generatePushCode("argument", "0", "")
-	assemblyCode += generatePushCode("this", "0", "")
-	assemblyCode += generatePushCode("that", "0", "")
+	assemblyCode += generatePushSymbol("LCL")
+	assemblyCode += generatePushSymbol("ARG")
+	assemblyCode += generatePushSymbol("THIS")
+	assemblyCode += generatePushSymbol("THAT")
 	assemblyCode +=
 		"//set LCL to SP, reposition ARG, then go to function\n" +
 			"@SP\n" +
@@ -291,8 +301,15 @@ func WriteCall(file *os.File, function string, args string) (err error) {
 			"D=D-A\n" +
 			"@ARG\n" +
 			"M=D\n"
-	assemblyCode += generateGoTo(functionName)
+	assemblyCode += generateGoTo(function)
 	assemblyCode += "(" + returnLabel + ")\n"
+
+	return assemblyCode
+}
+
+func WriteCall(file *os.File, function string, args string) (err error) {
+
+	assemblyCode := generateCallCode(file, function, args)
 
 	_, err = file.WriteString(assemblyCode)
 
@@ -326,7 +343,13 @@ func WriteFunction(file *os.File, function string, nVars string) (err error) {
 func getFunctionName(file *os.File, function string) (functionName string) {
 	filepath := strings.Split(file.Name(), "/")
 	filename := strings.TrimSuffix(filepath[len(filepath)-1], ".asm")
-	functionName = filename + "." + function
+
+	// get function name filename.function and return label
+	if function != "Sys.init" {
+		functionName = filename + "." + function
+	} else {
+		functionName = function
+	}
 
 	return functionName
 }
@@ -343,10 +366,10 @@ func generateReturnAddr(returnLabelName string) (assemblyCode string) {
 	// creates label for filename.functionName return address
 	// then pushes the address of this label onto the stack
 	assemblyCode =
-		"create function return address and push address to stack\n" +
-			"(" + returnLabelName + ")\n" +
+		"//create function return address and push address to stack\n" +
+			//TODO - confirm that this code isn't needed!"(" + returnLabelName + ")\n" +
 			"@" + returnLabelName + "\n" +
-			"0;JMP\n" +
+			//"0;JMP\n" +
 			"D=A\n" +
 			pushCode
 
@@ -413,7 +436,8 @@ func generateReturnCode() (assembleyCode string) {
 			"\n" +
 			"// retAddr = *(endframe-5)\n" +
 			"@5\n" +
-			"D=D-A\n" +
+			"A=D-A\n" +
+			"D=M\n" +
 			"@R14\n" +
 			"M=D\n" +
 			"\n" +
@@ -425,7 +449,7 @@ func generateReturnCode() (assembleyCode string) {
 			"A=M\n" +
 			"M=D\n" +
 			"\n" +
-			"//SP = ARG+1" +
+			"//SP = ARG+1\n" +
 			"@ARG\n" +
 			"D=M\n" +
 			"@SP\n" +
@@ -463,7 +487,8 @@ func generateReturnCode() (assembleyCode string) {
 			"@R14\n" +
 			"A=M\n" +
 			"0;JMP\n" +
-			"//------- return end -------\n"
+			"//------- return end -------\n" +
+			"\n"
 
 	return strings.TrimSpace(assembleyCode)
 }
@@ -477,6 +502,26 @@ func WriteReturn(file *os.File) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed writing return operation to file: %v", err)
 	}
+
+	return nil
+}
+
+func WriteInit(file *os.File) (err error) {
+	functionName := "Sys.init"
+	assemblyCode :=
+		"@256\n" +
+			"D=A\n" +
+			"@SP\n" +
+			"M=D\n" +
+			generateCallCode(file, functionName, "0")
+
+	_, err = file.WriteString(assemblyCode)
+
+	if err != nil {
+		return fmt.Errorf("failed writing sys.init  to file: %v", err)
+	}
+
+	fmt.Print(assemblyCode)
 
 	return nil
 }
