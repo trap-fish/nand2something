@@ -12,7 +12,7 @@ var labelCounter int
 var returnCounter int
 
 // global variable to store function name each time a function command is parsed
-var GlobalFuncName = "invalid_function"
+var GlobalFuncName = ""
 
 // global variable to avoid repetitive creation of push code
 var pushCode = "@SP\n" +
@@ -386,7 +386,7 @@ func WriteIf(file *os.File, label string) (err error) {
 			"AM=M-1\n" +
 			"D=M\n" +
 			"@" + label + "\n" +
-			"D;JGT\n"
+			"D;JNE\n"
 
 	_, err = file.WriteString(assemblyCode)
 
@@ -402,7 +402,7 @@ func generateFuncLabelName(label string) string {
 	// a label must always be defined from inside a function
 	// the function name of the function being parsed will be stored in
 	// global variable GlobalFuncName
-	return GlobalFuncName + "_" + label
+	return GlobalFuncName + label
 }
 
 func WriteLabel(file *os.File, label string) (err error) {

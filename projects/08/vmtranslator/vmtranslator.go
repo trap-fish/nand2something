@@ -51,13 +51,13 @@ func main() {
 		defer outf.Close()
 	}
 
+	// write initialiser code to file
+	codeWriter.WriteInit(outf)
+
 	for _, filepath := range fileList {
 
 		// parse the file
 		parsedFile, cmdType := parser.Parser(filepath)
-
-		// write initialiser code to file
-		codeWriter.WriteInit(outf)
 
 		for el := range len(parsedFile) {
 			arg1, arg2, err := parser.Args(parsedFile[el])
@@ -82,11 +82,6 @@ func main() {
 				codeWriter.WriteReturn(outf)
 			} else {
 				codeWriter.WritePushPop(outf, cmdType[el], arg1, arg2)
-			}
-
-			// terminate the programme with infinite loop
-			if el == len(parsedFile)-1 {
-				outf.WriteString("\n(END)\n@END\n0;JEQ")
 			}
 		}
 	}
