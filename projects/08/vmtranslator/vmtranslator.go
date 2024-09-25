@@ -75,6 +75,7 @@ func main() {
 				codeWriter.WriteIf(outf, arg1)
 			} else if cmdType[el] == "C_FUNCTION" {
 				codeWriter.WriteFunction(outf, arg1, arg2)
+				codeWriter.GlobalFuncName = arg1
 			} else if cmdType[el] == "C_CALL" {
 				codeWriter.WriteCall(outf, arg1, arg2)
 			} else if cmdType[el] == "C_RETURN" {

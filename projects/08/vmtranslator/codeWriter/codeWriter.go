@@ -11,6 +11,9 @@ import (
 var labelCounter int
 var returnCounter int
 
+// global variable to store function name each time a function command is parsed
+var GlobalFuncName = "invalid_function"
+
 // global variable to avoid repetitive creation of push code
 var pushCode = "@SP\n" +
 	"A=M\n" +
@@ -260,7 +263,7 @@ func WriteArithmetic(file *os.File, operator string) (err error) {
 func generateGoTo(labelName string) (assemblyCode string) {
 	// unconditional jump to @argument
 	assemblyCode =
-		"@" + labelName + "\n" +
+		"@" + generateFuncLabelName(labelName) + "\n" +
 			"0;JMP\n"
 	return assemblyCode
 }
@@ -296,8 +299,9 @@ func generateCallCode(function string, args string) (assemblyCode string) {
 			"@" + args + "\n" +
 			"D=D-A\n" +
 			"@ARG\n" +
-			"M=D\n"
-	assemblyCode += generateGoTo(function)
+			"M=D\n" +
+			"@" + function + "\n" +
+			"0;JMP\n"
 	assemblyCode += "(" + returnLabel + ")\n"
 
 	return assemblyCode
@@ -372,15 +376,16 @@ func WriteGoTo(file *os.File, argument string) (err error) {
 
 }
 
-func WriteIf(file *os.File, argument string) (err error) {
-	// if the top most value on stack is true/1, jump to @argument
+func WriteIf(file *os.File, label string) (err error) {
+	// if the top most value on stack is true/1, jump to @label
 	// Compiler will handle prior logic to ensure the value in SP-1 addr
 	// was the result of conditional logic
+	label = generateFuncLabelName(label)
 	assemblyCode :=
 		"@SP\n" +
 			"AM=M-1\n" +
 			"D=M\n" +
-			"@" + argument + "\n" +
+			"@" + label + "\n" +
 			"D;JGT\n"
 
 	_, err = file.WriteString(assemblyCode)
@@ -393,13 +398,20 @@ func WriteIf(file *os.File, argument string) (err error) {
 
 }
 
-func WriteLabel(file *os.File, argument string) (err error) {
-	// TODO: need to add funciton name here, e.g. could be N_LT_2 in two fles
-	assemblyCode :=
-		"// label for " + argument + " loop\n" +
-			"(" + argument + ")\n"
-	_, err = file.WriteString(assemblyCode)
+func generateFuncLabelName(label string) string {
+	// a label must always be defined from inside a function
+	// the function name of the function being parsed will be stored in
+	// global variable GlobalFuncName
+	return GlobalFuncName + "_" + label
+}
 
+func WriteLabel(file *os.File, label string) (err error) {
+	label = generateFuncLabelName(label)
+	assemblyCode :=
+		"// label for " + label + " loop\n" +
+			"(" + label + ")\n"
+
+	_, err = file.WriteString(assemblyCode)
 	if err != nil {
 		return fmt.Errorf("failed writing loop operation to file: %v", err)
 	}
