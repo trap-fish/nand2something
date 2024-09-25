@@ -276,13 +276,9 @@ func generatePushSymbol(symbol string) (assembleyCode string) {
 
 }
 
-func generateCallCode(file *os.File, function string, args string) (assemblyCode string) {
-	// get function name filename.function and return label
-	if function != "Sys.init" {
-		function = getFunctionName(file, function)
-	}
+func generateCallCode(function string, args string) (assemblyCode string) {
 	returnLabel := getReturnLabel(function)
-
+	assemblyCode += "// call " + function + " " + args + "\n"
 	//save the return address and current memory segments
 	assemblyCode += generateReturnAddr(returnLabel)
 	assemblyCode += generatePushSymbol("LCL")
@@ -309,7 +305,7 @@ func generateCallCode(file *os.File, function string, args string) (assemblyCode
 
 func WriteCall(file *os.File, function string, args string) (err error) {
 
-	assemblyCode := generateCallCode(file, function, args)
+	assemblyCode := generateCallCode(function, args)
 
 	_, err = file.WriteString(assemblyCode)
 
@@ -323,7 +319,7 @@ func WriteCall(file *os.File, function string, args string) (err error) {
 
 func WriteFunction(file *os.File, function string, nVars string) (err error) {
 
-	functionName := getFunctionName(file, function)
+	functionName := function
 	localVars := generatePushCode("constant", "0", "")
 	numLocalVars, _ := strconv.Atoi(nVars)
 
@@ -340,19 +336,6 @@ func WriteFunction(file *os.File, function string, nVars string) (err error) {
 	return nil
 }
 
-func getFunctionName(file *os.File, function string) (functionName string) {
-	filepath := strings.Split(file.Name(), "/")
-	filename := strings.TrimSuffix(filepath[len(filepath)-1], ".asm")
-
-	// get function name filename.function and return label
-	if function != "Sys.init" {
-		functionName = filename + "." + function
-	} else {
-		functionName = function
-	}
-
-	return functionName
-}
 func getReturnLabel(functionName string) (returnLabel string) {
 	// create a unique label for function return address
 	returnId := strconv.Itoa(returnCounter)
@@ -411,6 +394,7 @@ func WriteIf(file *os.File, argument string) (err error) {
 }
 
 func WriteLabel(file *os.File, argument string) (err error) {
+	// TODO: need to add funciton name here, e.g. could be N_LT_2 in two fles
 	assemblyCode :=
 		"// label for " + argument + " loop\n" +
 			"(" + argument + ")\n"
@@ -513,7 +497,7 @@ func WriteInit(file *os.File) (err error) {
 			"D=A\n" +
 			"@SP\n" +
 			"M=D\n" +
-			generateCallCode(file, functionName, "0")
+			generateCallCode(functionName, "0")
 
 	_, err = file.WriteString(assemblyCode)
 
