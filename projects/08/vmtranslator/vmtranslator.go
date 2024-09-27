@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,8 +20,8 @@ func isFile(filename string) bool {
 	return strings.HasSuffix(filename, ".vm")
 }
 
+// returns a list of all files (inc. relative path) in the dirName
 func getFileList(dirName string) []string {
-
 	var fileList []string
 	c, err := os.ReadDir(dirName)
 	check(err)
@@ -35,29 +36,34 @@ func getFileList(dirName string) []string {
 }
 
 func main() {
+	// redirect log output to stdout
+	log.SetOutput(os.Stdout)
+
 	arg := os.Args[1]
-	filename := arg
+	inputFile := arg
 	var outf *os.File
 
-	fileList := []string{filename}
+	fileList := []string{inputFile}
 
+	// inputFile might be a filename.vm or path/to/file/directory/
 	if !isFile(arg) {
 		fileList = getFileList(arg)
 		outname := filepath.Base(arg)
-		outf, _ = os.Create(filename + outname + ".asm")
+		outf, _ = os.Create(inputFile + outname + ".asm")
 		defer outf.Close()
 	} else {
-		outf, _ = os.Create(strings.TrimSuffix(filename, ".vm") + ".asm")
+		outf, _ = os.Create(strings.TrimSuffix(inputFile, ".vm") + ".asm")
 		defer outf.Close()
 	}
 
 	// write initialiser code to file
 	codeWriter.WriteInit(outf)
 
-	for _, filepath := range fileList {
+	for _, file := range fileList {
+		codeWriter.SetFilename(filepath.Base(file))
 
 		// parse the file
-		parsedFile, cmdType := parser.Parser(filepath)
+		parsedFile, cmdType := parser.Parser(file)
 
 		for el := range len(parsedFile) {
 			arg1, arg2, err := parser.Args(parsedFile[el])

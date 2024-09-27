@@ -12,6 +12,9 @@ var labelCounter int
 var returnCounter int
 
 // global variable to store function name each time a function command is parsed
+var globalFilename string
+
+// global variable to store function name each time a function command is parsed
 var GlobalFuncName = ""
 
 // global variable to avoid repetitive creation of push code
@@ -20,6 +23,11 @@ var pushCode = "@SP\n" +
 	"M=D\n" +
 	"@SP\n" +
 	"M=M+1\n"
+
+func SetFilename(filename string) {
+	globalFilename = strings.TrimSuffix(filename, ".vm")
+
+}
 
 // takes the command's segment and maps to the assembly symbol
 func mapSegmentSymbol(segment string, vmIndex string) (segSymbol string) {
@@ -51,13 +59,13 @@ func mapSegmentSymbol(segment string, vmIndex string) (segSymbol string) {
 	return segSymbol
 }
 
-func generatePushCode(vmSegment string, vmIndex string, filename string) (assemblyCode string) {
+func generatePushCode(vmSegment string, vmIndex string) (assemblyCode string) {
 
 	var symbol string
 
 	// static has no symbol, but a unique label based on filename.index
 	if vmSegment == "static" {
-		symbol = generateStaticLabel(filename, vmIndex)
+		symbol = generateStaticLabel(vmIndex)
 	} else {
 		symbol = mapSegmentSymbol(vmSegment, vmIndex)
 	}
@@ -67,7 +75,7 @@ func generatePushCode(vmSegment string, vmIndex string, filename string) (assemb
 		assemblyCode += "//push constant " + vmIndex + "\n"
 		assemblyCode += "@" + vmIndex + "\nD=A\n"
 		assemblyCode += pushCode
-	} else if vmSegment == "temp" || vmSegment == "pointer" {
+	} else if vmSegment == "temp" || vmSegment == "pointer" || vmSegment == "static" {
 		assemblyCode += "//push " + vmSegment + " " + vmIndex + "\n"
 		assemblyCode += "@" + symbol + "\nD=M\n"
 		assemblyCode += pushCode
@@ -81,12 +89,12 @@ func generatePushCode(vmSegment string, vmIndex string, filename string) (assemb
 
 }
 
-func generatePopCode(vmSegment string, vmIndex string, filename string) (assemblyCode string) {
+func generatePopCode(vmSegment string, vmIndex string) (assemblyCode string) {
 	var symbol string
 
 	// static has no symbol, but a unique label based on filename.index
 	if vmSegment == "static" {
-		symbol = generateStaticLabel(filename, vmIndex)
+		symbol = generateStaticLabel(vmIndex)
 	} else {
 		symbol = mapSegmentSymbol(vmSegment, vmIndex)
 	}
@@ -108,11 +116,12 @@ func generatePopCode(vmSegment string, vmIndex string, filename string) (assembl
 			"@" + symbol + "\n" +
 			"M=D\n"
 
-	if vmSegment == "temp" || vmSegment == "pointer" {
+	if vmSegment == "temp" || vmSegment == "pointer" || vmSegment == "static" {
 		assemblyCode = "//pop " + vmSegment + " " + vmIndex + "\n"
 		assemblyCode += tempPopCode
 		return assemblyCode
 	}
+
 	assemblyCode = "//pop " + vmSegment + " " + vmIndex + "\n"
 	assemblyCode += "@" + symbol + "\nD=M\n@" + vmIndex + "\n"
 	assemblyCode += popCode
@@ -123,13 +132,11 @@ func generatePopCode(vmSegment string, vmIndex string, filename string) (assembl
 
 func WritePushPop(file *os.File, cmdType string, segment string, index string) error {
 	var assemblyCode string
-	filepath := strings.Split(file.Name(), "/")
-	filename := strings.TrimSuffix(filepath[len(filepath)-1], ".asm")
 
 	if cmdType == "C_PUSH" {
-		assemblyCode = generatePushCode(segment, index, filename)
+		assemblyCode = generatePushCode(segment, index)
 	} else if cmdType == "C_POP" {
-		assemblyCode = generatePopCode(segment, index, filename)
+		assemblyCode = generatePopCode(segment, index)
 	} else {
 		err1 := fmt.Errorf("writePushPop recieved a non C_PUSH/C_POP command: Type:%s - %s %s", cmdType, segment, index)
 		return err1
@@ -162,8 +169,8 @@ func getLogicalAssembly(operator string) (logAssemblyCode string) {
 }
 
 // static variables are to have a format Foo.i where Foo is the filename and i the index
-func generateStaticLabel(filename string, index string) (staticLabel string) {
-	staticLabel = filename + "." + index
+func generateStaticLabel(index string) (staticLabel string) {
+	staticLabel = globalFilename + "." + index
 	return staticLabel
 }
 
@@ -324,7 +331,7 @@ func WriteCall(file *os.File, function string, args string) (err error) {
 func WriteFunction(file *os.File, function string, nVars string) (err error) {
 
 	functionName := function
-	localVars := generatePushCode("constant", "0", "")
+	localVars := generatePushCode("constant", "0")
 	numLocalVars, _ := strconv.Atoi(nVars)
 
 	assemblyCode := "// function " + function + " " + nVars + "\n" +
