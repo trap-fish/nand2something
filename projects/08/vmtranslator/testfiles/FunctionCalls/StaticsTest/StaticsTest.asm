@@ -71,17 +71,10 @@ M=D
 @SP
 M=M+1
 //pop static 0
-@StaticsTest.0
-D=M
-@0
-D=D+A
-@R13
-M=D
 @SP
 AM=M-1
 D=M
-@R13
-A=M
+@Class1.0
 M=D
 //push argument 1
 @ARG
@@ -95,17 +88,10 @@ M=D
 @SP
 M=M+1
 //pop static 1
-@StaticsTest.1
-D=M
-@1
-D=D+A
-@R13
-M=D
 @SP
 AM=M-1
 D=M
-@R13
-A=M
+@Class1.1
 M=D
 //push constant 0
 @0
@@ -178,10 +164,7 @@ A=M
 //------- return end -------// function Class1.get 0
 (Class1.get)
 //push static 0
-@StaticsTest.0
-D=M
-@0
-A=D+A
+@Class1.0
 D=M
 @SP
 A=M
@@ -189,10 +172,7 @@ M=D
 @SP
 M=M+1
 //push static 1
-@StaticsTest.1
-D=M
-@1
-A=D+A
+@Class1.1
 D=M
 @SP
 A=M
@@ -285,17 +265,10 @@ M=D
 @SP
 M=M+1
 //pop static 0
-@StaticsTest.0
-D=M
-@0
-D=D+A
-@R13
-M=D
 @SP
 AM=M-1
 D=M
-@R13
-A=M
+@Class2.0
 M=D
 //push argument 1
 @ARG
@@ -309,17 +282,10 @@ M=D
 @SP
 M=M+1
 //pop static 1
-@StaticsTest.1
-D=M
-@1
-D=D+A
-@R13
-M=D
 @SP
 AM=M-1
 D=M
-@R13
-A=M
+@Class2.1
 M=D
 //push constant 0
 @0
@@ -392,10 +358,7 @@ A=M
 //------- return end -------// function Class2.get 0
 (Class2.get)
 //push static 0
-@StaticsTest.0
-D=M
-@0
-A=D+A
+@Class2.0
 D=M
 @SP
 A=M
@@ -403,10 +366,7 @@ M=D
 @SP
 M=M+1
 //push static 1
-@StaticsTest.1
-D=M
-@1
-A=D+A
+@Class2.1
 D=M
 @SP
 A=M

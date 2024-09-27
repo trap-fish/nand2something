@@ -105,7 +105,7 @@ M=M+1
 AM=M-1
 D=M
 @Main.fibonacciN_LT_2
-D;JLT
+D;JNE
 @Main.fibonacciN_GE_2
 0;JMP
 // label for Main.fibonacciN_LT_2 loop
